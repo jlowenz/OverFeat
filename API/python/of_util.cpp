@@ -30,9 +30,12 @@ THTensor* THFromContiguousArray(PyArrayObject* array) {
 PyObject* ArrayFromTH(THTensor* th)
 {
   npy_intp sizes[3] = {0,0,0};
-  for (int i = 0; i < th->nDimension; ++i)
+  for (int i = 0; i < th->nDimension; ++i) {
     sizes[i] = th->size[i];
-  
+    //printf("size %d: %d\n", i, sizes[i]);
+  }
+
+  //printf("ndim %d, data %lu\n", th->nDimension, THTensor_(data)(th));
   PyArrayObject* output = (PyArrayObject*)PyArray_SimpleNewFromData(th->nDimension,
 								    sizes,
 								    NPY_FLOAT,
