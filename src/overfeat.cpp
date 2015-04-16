@@ -13,19 +13,27 @@ using namespace std;
 
 // this path is defined when init is called
 //#define WEIGHT_FILE "../data/default/net_weight"
-#define WEIGHT_FILE (overfeat::weight_file_path_g.c_str())
+//#define WEIGHT_FILE (overfeat::weight_file_path_g.c_str())
 
 #define argcheck(test, narg, message) {if (!(test)) fprintf(stderr, "Error in file %s at line %d, argument %d : %s\n", __FILE__, __LINE__, (narg), (message));}
 
 #include "modules.hpp"
 
 namespace overfeat {
-  
-  string weight_file_path_g;
-  int net_idx_g;
-  FILE* weight_file = NULL;
-  size_t weight_file_pos = 0;
-  THTensor* load_tensor(int istart, int d1, int d2=-1, int d3=-1, int d4=-1) {
+
+  static std::mutex weight_mutex;  
+  static std::map<std::string,shared_weight_ptr> shared_weight_map;
+
+  shared_weights::~shared_weights() {
+    for (int i = 0; i < nModules; ++i) {
+      if (weights[i])
+	THTensor_(free)(weights[i]);
+      if (bias[i])
+	THTensor_(free)(bias[i]);
+    }
+  }
+
+  THTensor* shared_weights::load_tensor(int istart, int d1, int d2, int d3, int d4) {
     if (!weight_file) {
       cout << "Error : can't read weight file" << endl;
     }
@@ -52,48 +60,56 @@ namespace overfeat {
     return out;
   }
 
-  #include INIT_FILE
-  void init(const string & weight_file_path, int net_idx) {
+#include INIT_FILE
+
+
+  Overfeat::Overfeat(const string & weight_file_path, int net_idx, int max_layer) {
     weight_file_path_g = weight_file_path;
     net_idx_g = net_idx;
+    max_layer_g = (max_layer < 0) ? nModules(net_idx) : std::min(max_layer, nModules(net_idx));
+    std::cerr << "OverFeat max layer: " << max_layer_g << std::endl;
     memset(outputs, 0, nModules(net_idx)*sizeof(THTensor*));
-    memset(weights, 0, nModules(net_idx)*sizeof(THTensor*));
-    memset(bias   , 0, nModules(net_idx)*sizeof(THTensor*));
     for (int i = 0; i < nModules(net_idx); ++i)
       outputs[i] = THTensor_(new)();
-    init1(net_idx);
-  }
-
-  void free() {
-    for (int i = 0; i < nModules(net_idx_g); ++i) {
-      if (outputs[i])
-        THTensor_(free)(outputs[i]);
-      if (weights[i])
-        THTensor_(free)(weights[i]);
-      if (bias[i])
-        THTensor_(free)(bias[i]);
+    
+    // check to see if the weights are loaded
+    { 
+      std::unique_lock<std::mutex> lock(weight_mutex);
+      if (shared_weight_map.find(weight_file_path_g) != shared_weight_map.end()) {
+	weights = shared_weight_map[weight_file_path_g];
+      } else {
+	weights.reset(new shared_weights(weight_file_path_g.c_str(), net_idx_g, nModules(net_idx)));
+	shared_weight_map[weight_file_path_g] = weights;
+      }
     }
   }
 
-  void soft_max(THTensor* input, THTensor* output) {
+  Overfeat::~Overfeat() {
+    for (int i = 0; i < nModules(net_idx_g); ++i) {
+      if (outputs[i])
+	THTensor_(free)(outputs[i]);
+    }
+  }
+
+  void Overfeat::soft_max(THTensor* input, THTensor* output) {
     SoftMax_updateOutput(input, output);
   }
   
-  int get_n_layers() {
-    return nModules(net_idx_g);
+  int Overfeat::get_n_layers() {
+    return max_layer_g+1;
   }
 
-  THTensor* get_output(int i_layer) {
-    assert((i_layer >= 0) && (i_layer < nModules(net_idx_g)));
+  THTensor* Overfeat::get_output(int i_layer) {
+    assert((i_layer >= 0) && (i_layer <= max_layer_g));
     return outputs[i_layer];
   }
 
-  string get_class_name(int i_class) {
+  string Overfeat::get_class_name(int i_class) {
     assert((i_class >= 0) && (i_class < nClasses));
     return class_names[i_class];
   }
 
-  vector<pair<string, float> > get_top_classes(THTensor* net_output, int n) {
+  vector<pair<string, float> > Overfeat::get_top_classes(THTensor* net_output, int n) {
     real* net_output_data = THTensor_(data)(net_output);
     vector<pair<float, int> > tosort(nClasses);
     for (int i = 0; i < nClasses; ++i)
@@ -106,9 +122,10 @@ namespace overfeat {
     return out;
   }
     
-  #include FPROP_FILE
-  THTensor* fprop(THTensor* input) {
-    return fprop1(input, net_idx_g);
+#include FPROP_FILE
+
+  THTensor* Overfeat::fprop(THTensor* input) {
+    return weights->fprop1(input, outputs, net_idx_g, max_layer_g);
   }
 
 }

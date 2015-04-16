@@ -37,9 +37,14 @@ static PyObject*
 overfeat_init(PyObject* self, PyObject* args) {
   const char* weight_file_path;
   int net_idx;
-  if (!PyArg_ParseTuple(args, "si", &weight_file_path, &net_idx))
+  int max_layer;
+  if (PyArg_ParseTuple(args, "sii", &weight_file_path, &net_idx, &max_layer)) {
+    overfeat::init(weight_file_path, net_idx, max_layer);
+  } else if (PyArg_ParseTuple(args, "si", &weight_file_path, &net_idx)) {
+    overfeat::init(weight_file_path, net_idx);
+  } else {
     return NULL;
-  overfeat::init(weight_file_path, net_idx);
+  }
   Py_INCREF(Py_None);
   return Py_None;
 }

@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
   try {
     
     // Initialization
-    overfeat::init(weight_file_path, net_idx);
+    overfeat::Overfeat of(weight_file_path, net_idx);
     THTensor* input = THTensor_(new)();
     THTensor* probas = THTensor_(new)();
     
@@ -126,21 +126,20 @@ int main(int argc, char* argv[]) {
       getCameraFrame(webcamidx, input, 231, 231);
       
       // Extract features and classify
-      THTensor* output = overfeat::fprop(input);
+      THTensor* output = of.fprop(input);
       
       // Convert output into probabilities
       assert((output->size[1] == 1) && (output->size[2] == 1));
       output->nDimension = 1;
-      overfeat::soft_max(output, probas);
+      of.soft_max(output, probas);
       
       // Display
-      vector<pair<string, float> > top_classes = overfeat::get_top_classes(probas, 5);
+      vector<pair<string, float> > top_classes = of.get_top_classes(probas, 5);
       displayWithConf(input, top_classes);
     }
 
     THTensor_(free)(input);
     THTensor_(free)(probas);
-    overfeat::free();
 
   } catch (cv::Exception & e) {
     cout << "OpenCV error" << endl;

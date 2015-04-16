@@ -11,7 +11,7 @@ BLAS_LINK=-L/opt/OpenBLAS/lib -lopenblas
 endif
 
 OMP_FLAG=-fopenmp
-FLAGS=${OMP_FLAG} -O3
+FLAGS=${OMP_FLAG} -O3 -std=c++11
 # -Wl,--hash-style=both -static-libgcc
 
 LIB_FLAGS=${FLAGS} -fPIC
@@ -20,7 +20,7 @@ LIB_HEADERS=modules.hpp overfeat.hpp
 LIB_TARGET=liboverfeat.a
 LIB_INCLUDE=-I`if [ ! -d "data/default" ]; then echo "../data/default"; else echo "data/default"; fi`
 
-CMD_LINK=liboverfeat.a libTH.a ${BLAS_LINK}
+CMD_LINK=liboverfeat.a -lTH ${BLAS_LINK}
 CMD_CPP=overfeatcmd.cpp tools/ppm.cpp
 CMD_HEADERS=tools/ppm.hpp
 CMD_TARGET=overfeatcmd

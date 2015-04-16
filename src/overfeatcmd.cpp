@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
   }
 
   // initializes overfeat
-  overfeat::init(argv[1], net_idx);
+  overfeat::Overfeat of(argv[1], net_idx);
   
   THTensor* input_raw = THTensor_(new)();
   THTensor* input = THTensor_(new)();
@@ -66,14 +66,14 @@ int main(int argc, char* argv[]) {
 	    data[s0*c + s1*i + s2*j] = data_raw[sr0*c + (i+yoffset)*sr1 + (j+xoffset)*sr2];
       
       // classification
-      THTensor* output = overfeat::fprop(input);
+      THTensor* output = of.fprop(input);
       if ((output->size[1] != 1) || (output->size[2] != 1)) {
 	cerr << "Can only determine class if the output is 1x1. Reduce input size" << endl;
 	exit(0);
       }
       output->nDimension = 1;
-      overfeat::soft_max(output, probas);
-      vector<pair<string, float> > top_classes = overfeat::get_top_classes(probas, nTopClasses);
+      of.soft_max(output, probas);
+      vector<pair<string, float> > top_classes = of.get_top_classes(probas, nTopClasses);
       
       // print output
       for (int i = 0; i < nTopClasses; ++i)
@@ -82,10 +82,10 @@ int main(int argc, char* argv[]) {
     } else {// if nTopClasses < 0, we output the features
 
       // extract features
-      THTensor* output = overfeat::fprop(input_raw);
+      THTensor* output = of.fprop(input_raw);
 
       // print output
-      THTensor* features = overfeat::get_output(feature_layer);
+      THTensor* features = of.get_output(feature_layer);
       real* data = THTensor_(data)(features);
       long
 	sf = features->stride[0],
@@ -104,6 +104,5 @@ int main(int argc, char* argv[]) {
   THTensor_(free)(probas);
   THTensor_(free)(input);
   THTensor_(free)(input_raw);
-  overfeat::free();
   return 0;
 }
