@@ -11,6 +11,10 @@ A library with C++ source code is provided for running the OverFeat convolutiona
 
 OverFeat was trained with the Torch7 package ( http://www.torch.ch ). The OverFeat package provides tools to run the network in a standalone fashion. The training code is not distributed at this time.
 
+Note
+----
+
+This fork modifies the original code to support multiple instances of the OverFeat network, and provides an updated Cython-based Python wrapper with ```nogil``` annotations to support multithreaded operation over multiple images. 
 
 CREDITS, LICENSE, CITATION
 --------------------------
