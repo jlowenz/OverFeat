@@ -318,7 +318,7 @@ inline void SoftMax_updateOutput(THTensor* input, THTensor* output) {
     nframe = input->size[0];
     dim = input->size[1];
   } else
-    THArgCheck(0, 2, "For now, output must be a vector or matrix"); //TODO
+    argcheck(0, 2, "For now, output must be a vector or matrix"); //TODO
 
   input = THTensor_(newContiguous)(input);
   THTensor_(resizeAs)(output, input);

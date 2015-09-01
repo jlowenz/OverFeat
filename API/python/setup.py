@@ -12,9 +12,12 @@ import os.path as path
 #                     #extra_link_args=['-lgomp', '-lTH', '-L%s'%(path.abspath('../../src/libTH.a'))])
 # 		    extra_link_args=['-lgomp'])
 
+TORCH_INC="/usr/local/src/torch/install/include"
+TORCH_LIB="/usr/local/src/torch/install/lib"
+
 modules = cythonize(
-    [Extension("overfeat", ["overfeat.pyx", "of_util.cpp"], include_dirs = ['../../src', numpy.get_include()],
-               library_dirs = ['/usr/local/src/torch/install/lib','../../src','/opt/OpenBLAS/lib'],
+    [Extension("overfeat", ["overfeat.pyx", "of_util.cpp"], include_dirs = [TORCH_INC,'../../src', numpy.get_include()],
+               library_dirs = [TORCH_LIB,'../../src','/opt/OpenBLAS/lib'],
                libraries = ['TH', 'overfeat', 'openblas'],
                language="c++",
                extra_compile_args=['-fopenmp','-std=c++11'],extra_link_args=['-lgomp'])])
